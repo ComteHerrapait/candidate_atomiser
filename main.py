@@ -60,9 +60,11 @@ def initialization():
 
 
 def clean_description(content):
-    remove_word = ["and", "the", "of", "in", "a", "he", "to", "she", "is", "for", "has", "at", "his", "with", "on", "her", "university", "as", "from", "s", "an", "dr", "was", "also", "years",
-                   "been", "school", "more", "that", "this", "work", "by", "new", "received", "including", "center", "degree", "book", "currently", "are", "science", "college", "other", "d", "or", "practice",
-                   "well", "be", "their", "than", "many", "have", "it", "one", "over"]
+    remove_word = ["and", "the", "of", "in", "a", "he", "to", "she", "is", "for", "has", "at", "his", "with", "on", "her",
+                   "university", "as", "from", "s", "an", "dr", "was", "also", "years", "been", "school", "more", "that",
+                   "this", "work", "by", "new", "received", "including", "center", "degree", "book", "currently", "are",
+                   "science", "college", "other", "d", "or", "practice", "well", "be", "their", "than", "many", "have", "it",
+                   "one", "over"]
     content = content.lower()
     content = " ".join(re.findall('[\w]+', content))
     content = " " + content + " "
@@ -72,24 +74,34 @@ def clean_description(content):
     return content.strip()
 
 
-def find_most_common_words(number=25):
-    print("#> Processing most common words ...")
+def find_most_common_words(number=None, display=False):
+    # read data from file
     df_candidates = local.read()
-    time_start = time()
+    if display:
+        print("#> Processing most common words ...")
+        time_start = time()
+
+    # clean descriptions
     for i, row in df_candidates.iterrows():
         df_candidates.at[i, 'description'] = clean_description(
             row["description"])
 
+    # count word occurences
     common_words = Counter()
     for i, row in df_candidates.iterrows():
         for word in row["description"].split():
             common_words[word] += 1
-    print("### done {:.2f}s".format(time()-time_start))
-    top_words = common_words.most_common(number)
-    print(">|< Most common words >|<")
-    for x in top_words:
-        print("> {} \t: {} ".format(x[1], x[0])) #beautifull display
-        #print("\"{}\",".format(x[0]), end="") #ready for copy and paste
+
+    # display if wanted
+    if display:
+        print("### done {:.2f}s".format(time()-time_start))
+        print(">|< Most common words >|<")
+        top_words = common_words.most_common(number)
+        for x in top_words:
+            print("> {} \t: {} ".format(x[1], x[0]))  # beautifull display
+            # print("\"{}\",".format(x[0]), end="") #ready for copy and paste
+
+    return dict(common_words)
 
 
 if __name__ == '__main__':
