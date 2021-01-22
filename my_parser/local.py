@@ -1,7 +1,7 @@
-def read(path="data/data.json"):
+def read(path="resources/data.json"):
     pass
 
-def write(path="data/output.json"):
+def write(path="resources/output.json"):
     pass
 
 if __name__ == "__main__" : 
