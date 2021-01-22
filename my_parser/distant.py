@@ -1,7 +1,7 @@
-def get(conf_path="config/conf_hadoop.json"):
+def import_data(conf_path="config/conf_hadoop.json"):
     pass
 
-def send(conf_path="config/conf_aws.json"):
+def export_data(conf_path="config/conf_aws.json"):
     pass
 
 if __name__ == "__main__" : 
