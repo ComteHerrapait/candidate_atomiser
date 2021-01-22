@@ -1,8 +1,10 @@
 import re
+from collections import Counter
 from time import time
 
-from collections import Counter
 import pandas as pd
+from nltk.corpus import stopwords
+from nltk.stem import SnowballStemmer
 from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
@@ -24,15 +26,26 @@ def main():
     # > PREPROCESS : clean description for easier analysis
     print(">> Processing descriptions ... ", end="\r", flush=True)
     time_start = time()
+
+    #print("\n" + df_candidates.iloc[42]["description"] + "\n")
+
+    stemmer = SnowballStemmer("english")
+    remove_words = set(stopwords.words("english"))
+    # if you get an error, run this command `nltk.download('stopwords')`
+
     for i, row in df_candidates.iterrows():
         df_candidates.at[i, 'description'] = clean_description(
-            row["description"])
-    print(">> Processing descriptions done in : {:.2f}".format(
-        time()-time_start))
+            row["description"],
+            stemmer,
+            remove_words
+        )
+
+    #print("\n" + df_candidates.iloc[42]["description"] + "\n")
+
+    print(">> Processing descriptions done in : {:.2f}".format(time()-time_start))
 
     # > SPLIT data into test and train sets
-    X_train, X_test, y_train, y_test = train_test_split(
-        df_candidates, df_labels, test_size=0.33, random_state=0)
+    X_train, X_test, y_train, y_test = train_test_split(df_candidates, df_labels, test_size=0.33, random_state=0)
     # TODO : the training part of the data should be saved in a file name predict.csv
     print(">> dataset divided into {}|{} for test|train".format(
         len(X_test), len(X_train)))
@@ -59,32 +72,42 @@ def initialization():
     return df_labels, df_categories
 
 
-def clean_description(content):
-    remove_word = ["and", "the", "of", "in", "a", "he", "to", "she", "is", "for", "has", "at", "his", "with", "on", "her",
-                   "university", "as", "from", "s", "an", "dr", "was", "also", "years", "been", "school", "more", "that",
-                   "this", "work", "by", "new", "received", "including", "center", "degree", "book", "currently", "are",
-                   "science", "college", "other", "d", "or", "practice", "well", "be", "their", "than", "many", "have", "it",
-                   "one", "over"]
-    content = content.lower()
-    content = " ".join(re.findall('[\w]+', content))
-    content = " " + content + " "
-    for word in remove_word:
-        content = content.replace(" {} ".format(word), " ")
-    content = " ".join(content.split())
-    return content.strip()
+def clean_description(content_, stemmer=None, remove_words=[]):
+    # remove capital characters
+    content = content_.lower()
+
+    # remove ponctuation and special characters
+    content = " ".join(re.findall('[a-zA-Z]+', content))
+
+    # replace words by their stem, splitting also remove double spaces
+    words = content.split()
+    words_stem = []
+    if stemmer != None:
+        for word in words:
+            stem = stemmer.stem(word)
+            if not stem in remove_words:
+                words_stem.append(stem)
+    content = " ".join(words_stem)
+    return content
 
 
 def find_most_common_words(number=None, display=False):
     # read data from file
     df_candidates = local.read()
+    #df_candidates = df_candidates.iloc[:50]
     if display:
         print("#> Processing most common words ...")
         time_start = time()
 
     # clean descriptions
+    stemmer = SnowballStemmer("english")
+    remove_words = set(stopwords.words("english"))
     for i, row in df_candidates.iterrows():
         df_candidates.at[i, 'description'] = clean_description(
-            row["description"])
+            row["description"],
+            stemmer,
+            remove_words
+        )
 
     # count word occurences
     common_words = Counter()
@@ -105,4 +128,5 @@ def find_most_common_words(number=None, display=False):
 
 
 if __name__ == '__main__':
+    #find_most_common_words(25, True)
     main()
