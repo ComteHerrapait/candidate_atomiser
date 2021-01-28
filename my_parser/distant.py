@@ -1,7 +1,8 @@
 import configparser
 import paramiko
+import scp
 
-def import_data(conf_path="config/hdp.conf"):
+def import_data(conf_path="../config/hdp.conf"):
     config = configparser.ConfigParser()
     config.read(conf_path)
     
@@ -14,10 +15,20 @@ def import_data(conf_path="config/hdp.conf"):
     local_path = config['DEFAULT']['PATH_LOCAL']
 
     ssh = paramiko.SSHClient()
-    ssh.connect(ip+port, user, password)
-    stdin, stdout, stderr = ssh.exec_command('ls')
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(ip, port=port, username=user, password=password)
+    stdin, stdout, stderr = ssh.exec_command('mkdir' + vm_path)
+    stdin, stdout, stderr = ssh.exec_command('hdfs dfs -get ' + hdp_path + '/data.json ' + vm_path)
+    stdin, stdout, stderr = ssh.exec_command('hdfs dfs -get ' + hdp_path + '/categories_string.csv ' + vm_path)
+    stdin, stdout, stderr = ssh.exec_command('hdfs dfs -get ' + hdp_path + '/label.csv ' + vm_path)
+
     lines = stdout.readlines()
     print(lines)
+
+    with scp.SCPClient(ssh.get_transport()) as scp1:
+        scp1.get(vm_path + '/data.json')
+        scp1.get(vm_path + '/categories_string.csv')
+        scp1.get(vm_path + '/label.csv')
 
 
 
