@@ -3,7 +3,7 @@ import paramiko
 import scp
 import os
 
-def import_data(conf_path="../config/conf.conf"):
+def import_data(conf_path="../config/connect.conf"):
     # To change paths, check hdp.conf
     config = configparser.ConfigParser()
     config.read(conf_path)
@@ -38,12 +38,24 @@ def import_data(conf_path="../config/conf.conf"):
 
 
 
-def export_data(conf_path="config/conf_aws.json"):
-    pass
+def export_data(conf_path="config/connect.conf"):
+    # To change paths, check hdp.conf
+    config = configparser.ConfigParser()
+    config.read(conf_path)
+    
+    user = config['AWS']['USER_NAME']
+    hostname = config['AWS']['HOST_NAME']
+    key_file = config['AWS']['KEY_FILE']
+
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(hostname, username=user, pkey=key_file)
+    stdin, stdout, stderr = ssh.exec_command('ls')
+
 
 if __name__ == "__main__" : 
     print("running distant parser")
-    import_data()
+    #import_data()
+    export_data()
 else :
     print("imported ", __name__)
-
