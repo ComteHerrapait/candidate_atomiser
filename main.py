@@ -64,7 +64,7 @@ def main(sample_count=0):
     # > CONVERT the occurence data into FREQUENCY data with TFIDF
     time_start = time()
     print(">> Converting to frequency of words (TFIDF) ...")
-    tf_transformer = TfidfTransformer(use_idf=False).fit(term_matrix)
+    tf_transformer = TfidfTransformer(sublinear_tf=True).fit(term_matrix)
     term_matrix_frequency = tf_transformer.transform(term_matrix)
     print(">> Convertion done in : {:.2f}s".format(time()-time_start))
 
@@ -75,11 +75,11 @@ def main(sample_count=0):
     print(">> dataset divided into {}|{} for test|train".format(
         X_test.shape[0], X_train.shape[0]))
 
-    # TODO : training
     # > CHOOSE a model for training (SVC | )
     time_start = time()
     print(">> Training Model ...")
-    model = SVC(kernel="linear")
+    # linear | poly | rbf | sigmoid | precomputed
+    model = SVC(kernel="sigmoid")
     model.fit(X_train, y_train)
     accuracy = model.score(X_test, y_test)
     print(">> Model Trained in : {:.2f}s".format(
@@ -93,6 +93,8 @@ def main(sample_count=0):
         for i in range(df_categories.shape[0]):
             print("\t{:3d}\t{} \t: {}".format(
                 i, df_categories.iloc[i][0], model.n_support_[i]))
+            
+    
 
 
 def initialization():
