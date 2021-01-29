@@ -26,9 +26,9 @@ def import_data(conf_path="../config/hdp.conf"):
     print(lines)
 
     with scp.SCPClient(ssh.get_transport()) as scp1:
-        scp1.get(vm_path + '/data.json')
-        scp1.get(vm_path + '/categories_string.csv')
-        scp1.get(vm_path + '/label.csv')
+        scp1.get(vm_path + '/data.json', local_path)
+        scp1.get(vm_path + '/categories_string.csv', local_path)
+        scp1.get(vm_path + '/label.csv', local_path)
 
 
 
