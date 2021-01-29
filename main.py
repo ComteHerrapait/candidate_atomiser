@@ -6,7 +6,7 @@ import pandas as pd
 from nltk import download
 from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
@@ -15,18 +15,19 @@ from sklearn.svm import SVC
 from my_parser import distant, local
 
 
-def main(sample_count = 0):
+def main(sample_count=0):
     # > IMPORT data
     df_candidates = local.read()  # information about candidates : id, description, gender
     df_labels, df_categories = initialization()
 
     # > REDUCE size of dataset for faster tests
     # REMOVE BEFORE PRODUCTION
-    if sample_count >= 1 :
+    if sample_count >= 1:
         df_labels = df_labels.iloc[:sample_count]
         df_candidates = df_candidates.iloc[:sample_count]
 
-    print("\n\n>> Running process with {} samples :".format(df_candidates.shape[0]))
+    print("\n\n>> Running process with {} samples :".format(
+        df_candidates.shape[0]))
     # > PREPROCESS : clean description for easier analysis
     print(">> Processing descriptions ... ", end="\r", flush=True)
     time_start = time()
@@ -53,7 +54,6 @@ def main(sample_count = 0):
 
     print(">> Processing descriptions done in : {:.2f}s".format(
         time()-time_start))
-    # at this point descriptions are in bag of words form
 
     # > VECTORISE text : transform description into vectors to train the model
     vectorizer = CountVectorizer()
@@ -61,9 +61,16 @@ def main(sample_count = 0):
     print(">> Vectorization done :")
     print("\tfeatures count : {}".format(len(vectorizer.get_feature_names())))
 
+    # > CONVERT the occurence data into FREQUENCY data with TFIDF
+    time_start = time()
+    print(">> Converting to frequency of words (TFIDF) ...")
+    tf_transformer = TfidfTransformer(use_idf=False).fit(term_matrix)
+    term_matrix_frequency = tf_transformer.transform(term_matrix)
+    print(">> Convertion done in : {:.2f}s".format(time()-time_start))
+
     # > SPLIT data into test and train sets
     X_train, X_test, y_train, y_test = train_test_split(
-        term_matrix, df_labels['Category'], test_size=0.33, random_state=0)
+        term_matrix_frequency, df_labels['Category'], test_size=0.33, random_state=0)
     # TODO : the training part of the data should be saved in a file name predict.csv
     print(">> dataset divided into {}|{} for test|train".format(
         X_test.shape[0], X_train.shape[0]))
@@ -79,13 +86,13 @@ def main(sample_count = 0):
         time()-time_start))
     print(">> Accuracy = {:.2f}%".format(accuracy*100))
 
-
     print(">> supports vectors : ")
-    if ( df_categories.shape[0] > len(model.n_support_) ):
+    if (df_categories.shape[0] > len(model.n_support_)):
         print("insuficient data : use more samples")
-    else : 
-        for i in range(df_categories.shape[0]) :
-            print("\t{:3d}\t{} \t: {}".format(i,df_categories.iloc[i][0], model.n_support_[i]))
+    else:
+        for i in range(df_categories.shape[0]):
+            print("\t{:3d}\t{} \t: {}".format(
+                i, df_categories.iloc[i][0], model.n_support_[i]))
 
 
 def initialization():
@@ -182,4 +189,4 @@ def find_most_common_words(number=None, display=False):
 
 if __name__ == '__main__':
     #find_most_common_words(25, True)
-    main(50000)
+    main(20000)
