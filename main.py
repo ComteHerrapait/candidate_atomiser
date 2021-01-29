@@ -22,8 +22,9 @@ def main():
 
     # > REDUCE size of dataset for faster tests
     # REMOVE BEFORE PRODUCTION
-    df_labels = df_labels.iloc[:20000]
-    df_candidates = df_candidates.iloc[:20000]
+    AMOUNT = 5000
+    df_labels = df_labels.iloc[:AMOUNT]
+    df_candidates = df_candidates.iloc[:AMOUNT]
 
     print("\n\n>> Running process with {} samples :".format(df_candidates.shape[0]))
     # > PREPROCESS : clean description for easier analysis
@@ -70,7 +71,7 @@ def main():
     # TODO : training
     # > CHOOSE a model for training (SVC | )
     time_start = time()
-    print("Training Model ...")
+    print(">> Training Model ...")
     model = SVC(kernel="linear")
     model.fit(X_train, y_train)
     accuracy = model.score(X_test, y_test)
@@ -78,7 +79,13 @@ def main():
         time()-time_start))
     print(">> Accuracy = {:.2f}%".format(accuracy*100))
 
-    print(model.n_support_)
+
+    print(">> supports vectors : ")
+    if ( df_categories.shape[0] > len(model.n_support_) ):
+        print("insuficient data : use more samples")
+    else : 
+        for i in range(df_categories.shape[0]) :
+            print("\t{:3d}\t{} \t: {}".format(i,df_categories.iloc[i][0], model.n_support_[i]))
 
 
 def initialization():
