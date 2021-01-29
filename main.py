@@ -15,16 +15,16 @@ from sklearn.svm import SVC
 from my_parser import distant, local
 
 
-def main():
+def main(sample_count = 0):
     # > IMPORT data
     df_candidates = local.read()  # information about candidates : id, description, gender
     df_labels, df_categories = initialization()
 
     # > REDUCE size of dataset for faster tests
     # REMOVE BEFORE PRODUCTION
-    AMOUNT = 5000
-    df_labels = df_labels.iloc[:AMOUNT]
-    df_candidates = df_candidates.iloc[:AMOUNT]
+    if sample_count >= 1 :
+        df_labels = df_labels.iloc[:sample_count]
+        df_candidates = df_candidates.iloc[:sample_count]
 
     print("\n\n>> Running process with {} samples :".format(df_candidates.shape[0]))
     # > PREPROCESS : clean description for easier analysis
@@ -89,6 +89,12 @@ def main():
 
 
 def initialization():
+    """
+    Initialize the job categories and the labels for the dataset from resource files.
+
+    Returns:
+        tuple (dataFrames): label dataframe and categories dataframe.
+    """
     # annotation : associating each candidate with the correct job category
     df_labels = pd.read_csv("resources/label.csv")
     # names of the different job categories
@@ -98,6 +104,17 @@ def initialization():
 
 
 def process_description(content_, stemmer=None, remove_words=[]):
+    """
+    Cleans a string and transforms it into a bag of words, by stemming word, putting it all in lower caps, and removing unnecessary characters.
+
+    Args:
+        content_ (string): The text to clean
+        stemmer (stemmer, optional): Stemmer used for the stemming part of the cleaning. Defaults to None.
+        remove_words (list, optional): List of useless words to remove from the text. Defaults to [].
+
+    Returns:
+        string: Bag of words corresponding to the input text.
+    """
     # remove capital characters
     content = content_.lower()
 
@@ -118,6 +135,16 @@ def process_description(content_, stemmer=None, remove_words=[]):
 
 
 def find_most_common_words(number=None, display=False):
+    """
+    This function returns the mosts common words in the descriptions of all candidates.
+
+    Args:
+        number (int, optional): Number of common words wanted. Defaults to None.
+        display (bool, optional): Controls if the function displays something. Defaults to False.
+
+    Returns:
+        dict: A dictionnary containing the most common words and their count.
+    """
     # read data from file
     df_candidates = local.read()
     #df_candidates = df_candidates.iloc[:50]
@@ -155,4 +182,4 @@ def find_most_common_words(number=None, display=False):
 
 if __name__ == '__main__':
     #find_most_common_words(25, True)
-    main()
+    main(50000)
