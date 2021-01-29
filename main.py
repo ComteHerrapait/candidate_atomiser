@@ -3,8 +3,10 @@ from collections import Counter
 from time import time
 
 import pandas as pd
+from nltk import download
 from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
@@ -20,47 +22,63 @@ def main():
 
     # > REDUCE size of dataset for faster tests
     # REMOVE BEFORE PRODUCTION
-    df_labels = df_labels.iloc[:50]
-    df_candidates = df_candidates.iloc[:50]
+    df_labels = df_labels.iloc[:20000]
+    df_candidates = df_candidates.iloc[:20000]
 
+    print("\n\n>> Running process with {} samples :".format(df_candidates.shape[0]))
     # > PREPROCESS : clean description for easier analysis
     print(">> Processing descriptions ... ", end="\r", flush=True)
     time_start = time()
 
-    #print("\n" + df_candidates.iloc[42]["description"] + "\n")
+    # print("\n{}\n".format(df_candidates.iloc[42]["description"]))
 
     stemmer = SnowballStemmer("english")
-    remove_words = set(stopwords.words("english"))
-    # if you get an error, run this command `nltk.download('stopwords')`
+    try:
+        remove_words = set(stopwords.words("english"))
+    except Exception as e:
+        print("ERROR stopwords not found")
+        print("FIX : attempting to download now ...")
+        download('stopwords')  # download the stopwords file
+        remove_words = set(stopwords.words("english"))
 
     for i, row in df_candidates.iterrows():
-        df_candidates.at[i, 'description'] = clean_description(
+        df_candidates.at[i, 'bagOfWords'] = process_description(
             row["description"],
             stemmer,
             remove_words
         )
 
-    #print("\n" + df_candidates.iloc[42]["description"] + "\n")
+    # print("\n{}\n".format(df_candidates.iloc[42]["description"]))
 
-    print(">> Processing descriptions done in : {:.2f}".format(time()-time_start))
-
-    # > SPLIT data into test and train sets
-    X_train, X_test, y_train, y_test = train_test_split(df_candidates, df_labels, test_size=0.33, random_state=0)
-    # TODO : the training part of the data should be saved in a file name predict.csv
-    print(">> dataset divided into {}|{} for test|train".format(
-        len(X_test), len(X_train)))
+    print(">> Processing descriptions done in : {:.2f}s".format(
+        time()-time_start))
+    # at this point descriptions are in bag of words form
 
     # > VECTORISE text : transform description into vectors to train the model
-    # TODO :
-    # > CHOOSE a model for training (SVC | )
-    # model = SVC(kernel="linear")
-    # model.fit(X_train, y_train)
-    # accuracy = model.score(X_test, y_test)
-    # print("SVC model trained.")
-    # print(">> Accuracy =", accuracy)
+    vectorizer = CountVectorizer()
+    term_matrix = vectorizer.fit_transform(df_candidates['bagOfWords'])
+    print(">> Vectorization done :")
+    print("\tfeatures count : {}".format(len(vectorizer.get_feature_names())))
 
-    # print("Class 0:", model.n_support_[0], "support vectors")
-    # print("Class 1:", model.n_support_[1], "support vectors")
+    # > SPLIT data into test and train sets
+    X_train, X_test, y_train, y_test = train_test_split(
+        term_matrix, df_labels['Category'], test_size=0.33, random_state=0)
+    # TODO : the training part of the data should be saved in a file name predict.csv
+    print(">> dataset divided into {}|{} for test|train".format(
+        X_test.shape[0], X_train.shape[0]))
+
+    # TODO : training
+    # > CHOOSE a model for training (SVC | )
+    time_start = time()
+    print("Training Model ...")
+    model = SVC(kernel="linear")
+    model.fit(X_train, y_train)
+    accuracy = model.score(X_test, y_test)
+    print(">> Model Trained in : {:.2f}s".format(
+        time()-time_start))
+    print(">> Accuracy = {:.2f}%".format(accuracy*100))
+
+    print(model.n_support_)
 
 
 def initialization():
@@ -72,11 +90,11 @@ def initialization():
     return df_labels, df_categories
 
 
-def clean_description(content_, stemmer=None, remove_words=[]):
+def process_description(content_, stemmer=None, remove_words=[]):
     # remove capital characters
     content = content_.lower()
 
-    # remove ponctuation and special characters
+    # remove ponctuation and special characters, keep only letters
     content = " ".join(re.findall('[a-zA-Z]+', content))
 
     # replace words by their stem, splitting also remove double spaces
@@ -87,8 +105,9 @@ def clean_description(content_, stemmer=None, remove_words=[]):
             stem = stemmer.stem(word)
             if not stem in remove_words:
                 words_stem.append(stem)
-    content = " ".join(words_stem)
-    return content
+        return " ".join(words_stem)
+    else:
+        return " ".join(words)
 
 
 def find_most_common_words(number=None, display=False):
@@ -103,7 +122,7 @@ def find_most_common_words(number=None, display=False):
     stemmer = SnowballStemmer("english")
     remove_words = set(stopwords.words("english"))
     for i, row in df_candidates.iterrows():
-        df_candidates.at[i, 'description'] = clean_description(
+        df_candidates.at[i, 'description'] = process_description(
             row["description"],
             stemmer,
             remove_words
@@ -112,7 +131,7 @@ def find_most_common_words(number=None, display=False):
     # count word occurences
     common_words = Counter()
     for i, row in df_candidates.iterrows():
-        for word in row["description"].split():
+        for word in row["description"]:
             common_words[word] += 1
 
     # display if wanted
