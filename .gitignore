@@ -133,3 +133,5 @@ dmypy.json
 resources/model.result
 
 resources/vectorizer.result
+
+resources/predict.csv

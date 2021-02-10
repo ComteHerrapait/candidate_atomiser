@@ -22,7 +22,6 @@ def main(sample_count=0):
     df_labels, df_categories = initialization()
 
     # > REDUCE size of dataset for faster tests
-    # REMOVE BEFORE PRODUCTION
     if sample_count >= 1:
         df_labels = df_labels.iloc[5:sample_count]
         df_candidates = df_candidates.iloc[5:sample_count]
@@ -148,7 +147,7 @@ def process_description(content_, stemmer=None, remove_words=[]):
         return " ".join(words)
 
 
-def predict_category_from_description(description):
+def predict_category_from_description(description, display=False):
     """return the job category that most propably matches the provided description.
     It uses the model saved to the file system.
 
@@ -159,27 +158,52 @@ def predict_category_from_description(description):
         Dataframe: job title
     """
     time_start = time()
-    print("\n>> trying to predict job corresponding to :\n {} \n".format(description))
+    if (display):
+        print("\n>> trying to predict job corresponding to :\n {} \n".format(description))
     model = load('resources/model.result')
-    
+
     description_bagofwords = process_description(
         description,
         SnowballStemmer("english"),
         set(stopwords.words("english"))
     )
-    print(">> bag of words :\n", description_bagofwords)
-    
+
     vectorizer = load('resources/vectorizer.result')
     description_vectorized = vectorizer.transform([description_bagofwords])
-    
-    tf_transformer = TfidfTransformer(sublinear_tf=True).fit(description_vectorized)
+
+    tf_transformer = TfidfTransformer(
+        sublinear_tf=True).fit(description_vectorized)
     description_frequency = tf_transformer.transform(description_vectorized)
-    
+
     index_predicted = model.predict(description_frequency)
     _, df_categories = initialization()
-    print("Prediction acquired in {:.2f}s".format(time()-time_start))
+    if (display):
+        print("Prediction acquired in {:.2f}s".format(time()-time_start))
     return df_categories.iloc[index_predicted]
 
+
+def predict_all(start, number):
+    """Create a predict.csv containing the predicted job of a sample of candidates.
+
+    Args:
+        start (int): starting index of the sample
+        number (int): number of candidate to include in the sample
+    """
+    df_candidates = local.read()  # information about candidates : id, description, gender
+    df_labels, df_categories = initialization()
+
+    df_labels = df_labels.iloc[start:start+number]
+    df_candidates = df_candidates.iloc[start:start+number]
+
+    with open('processed/predict.csv', 'a') as predict_file:
+        for i, row in df_candidates.iterrows():
+            id = row['Id']
+            description = row['description']
+            gender = row['gender']
+            predicted_job = predict_category_from_description(description)
+
+            predict_file.write("{},{},{},{}\n".format(
+                id, description, gender, predicted_job['0'].index[-1]))
 
 
 def find_most_common_words(number=None, display=False):
@@ -230,20 +254,9 @@ def find_most_common_words(number=None, display=False):
 
 if __name__ == '__main__':
     #find_most_common_words(25, True)
-    #main(20000)
-    prediction  = predict_category_from_description(
-        "She is also a Ronald D. Asmus Policy Entrepreneur Fellow with the German Marshall Fund and is a Visiting Fellow at the Centre for International Studies (CIS) at the University of Oxford. This commentary first appeared at Sada, an online journal published by the Carnegie Endowment for International Peace."
-        )
-    print("\n>> Result : ",prediction.iloc[0][0])
-    prediction  = predict_category_from_description(
-        "He is a member of the AICPA and WICPA. Brent graduated from the University of Wisconsin, La Crosse, with a degree in accountancy. He has lived in southern Wisconsin his entire life, and currently resides in Pardeeville with his wife Sara and their three children. Brent and Sara have a great appreciation of music, art, and theater."
-        )
-    print("\n>> Result : ",prediction.iloc[0][0])
-    prediction  = predict_category_from_description(
-        "Dr. Aster has held teaching and research positions at Ben Gurion University, Haifa University, Hebrew University, Bar Ilan University and the University of Pennsylvania. He has also taught Jewish studies at high schools in the United Stated and Israel."
-        )
-    print("\n>> Result : ",prediction.iloc[0][0])
-    prediction  = predict_category_from_description(
-        "He runs a boutique design studio attending clients in the United States, Europe and Asia. His work explores the convergence of human arts and science to give shape to an ever evolving design practice. With a particular commitment towards design education, Arturo is permanently engaged with the international design and development communities and often travels the world to exchange ideas about design with other designers and developers. Prior to his current venture, Arturo worked for Microsoft in Redmond for 7 years driving design evangelism"
-        )
-    print("\n>> Result : ",prediction.iloc[0][0])
+    # main(20000)
+    # prediction = predict_category_from_description(
+    #     "She is also a Ronald D. Asmus Policy Entrepreneur Fellow with the German Marshall Fund and is a Visiting Fellow at the Centre for International Studies (CIS) at the University of Oxford. This commentary first appeared at Sada, an online journal published by the Carnegie Endowment for International Peace."
+    # )
+    # print("\n>> Result : ", prediction.iloc[0][0])
+    predict_all(50000, 5)
