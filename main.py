@@ -149,6 +149,15 @@ def process_description(content_, stemmer=None, remove_words=[]):
 
 
 def predict_category_from_description(description):
+    """return the job category that most propably matches the provided description.
+    It uses the model saved to the file system.
+
+    Args:
+        description (string): description of a candidate
+
+    Returns:
+        Dataframe: job title
+    """
     time_start = time()
     print("\n>> trying to predict job corresponding to :\n {} \n".format(description))
     model = load('resources/model.result')
