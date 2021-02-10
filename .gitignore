@@ -131,3 +131,9 @@ dmypy.json
 .vscode/
 
 *.pub
+
+resources/model.result
+
+resources/vectorizer.result
+
+resources/predict.csv

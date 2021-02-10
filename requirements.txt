@@ -5,3 +5,4 @@ cryptography
 pymongo
 configparser
 paramiko
+scp
