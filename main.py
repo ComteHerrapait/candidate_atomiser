@@ -3,6 +3,7 @@ from collections import Counter
 from time import time
 
 import pandas as pd
+import configparser
 from nltk import download
 from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
@@ -12,6 +13,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.svm import SVC
 from joblib import dump, load
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.fernet import Fernet, InvalidToken
 
 from my_parser import distant, local
 
@@ -189,6 +194,77 @@ def predict_all(start, number):
         start (int): starting index of the sample
         number (int): number of candidate to include in the sample
     """
+    # Start with decrypting files
+
+    # Generate key
+    config = configparser.ConfigParser()j
+    config.read("resources/key.conf")
+    password = config['DEFAULT']['CRYPTING_KEY'] # Useful for the key to be the same everywhere
+    password = password.encode()
+    salt = bytes(config['DEFAULT']['SALT'], encoding='utf-8')
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=100000,
+        backend=default_backend()
+    )
+    key = base64.urlsafe_b64encode(kdf.derive(password))
+
+    # Decrypt encrypted_data.json
+    input_file = 'encrypted_data.json'
+    output_file = 'data.json'
+    path = "resources/" + output_file
+    fernet = Fernet(key)
+
+    with open("resources/" + input_file, 'rb') as f:
+        data = f.read()  # Read the bytes of the encrypted file
+
+   
+    try:
+        decrypted = fernet.decrypt(data)
+
+        if not os.path.exists(path):
+            open(path, 'w').close()
+
+        with open(path, 'wb') as f:
+            f.write(decrypted)  # Write the decrypted bytes to the output file
+
+    # Decrypt encrypted_categories_string.csv
+    input_file = 'encrypted_categories_string.csv'
+    output_file = 'categories_string.csv'
+    path = "resources/" + output_file
+
+    with open("resources/" + input_file, 'rb') as f:
+        data = f.read()  # Read the bytes of the encrypted file
+
+    try:
+        decrypted = fernet.decrypt(data)
+
+        if not os.path.exists(path):
+            open(path, 'w').close()
+
+        with open(path, 'wb') as f:
+            f.write(decrypted)  # Write the decrypted bytes to the output file
+
+    # Decrypt encrypted_label.csv
+    input_file = 'encrypted_label.csv'
+    output_file = 'label.csv'
+    path = "resources/" + output_file
+
+    with open("resources/" + input_file, 'rb') as f:
+        data = f.read()  # Read the bytes of the encrypted file
+
+    try:
+        decrypted = fernet.decrypt(data)
+
+        if not os.path.exists(path):
+            open(path, 'w').close()
+
+        with open(path, 'wb') as f:
+            f.write(decrypted)  # Write the decrypted bytes to the output file
+    
+
     df_candidates = local.read()  # information about candidates : id, description, gender
     df_labels, df_categories = initialization()
 
@@ -204,6 +280,17 @@ def predict_all(start, number):
 
             predict_file.write("{},{},{},{}\n".format(
                 id, description, gender, predicted_job['0'].index[-1]))
+    
+    # Encrypt processed data
+
+    with open('processed/predict.csv', 'rb') as f:
+        data = f.read()
+
+    fernet = Fernet(key)
+    encrypted = fernet.encrypt(data)
+
+    with open('processed/encrypted_result.csv', 'wb') as f:
+        f.write(encrypted)
 
 
 def find_most_common_words(number=None, display=False):
