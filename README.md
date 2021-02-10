@@ -42,7 +42,8 @@ We used many libraries to complete the project, which can all be installed using
 * cryptography : Used to encrypt and decrypt files
 * pymongo : Used to send the results to the mongoDB database
 * configparser : Used to read easily a config file
-* paramiko : Used for ssh and scp connections
+* paramiko : Used for ssh connections
+* scp : Used for scp connections
 
 # Setup
 run `pip install -r requirements.txt` to install dependencies  
