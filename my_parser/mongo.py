@@ -6,6 +6,13 @@ import configparser
 from pymongo import MongoClient
 
 def import_data_mongo(conf_path="../config/connect.conf"):
+    """
+    Import result.csv from local to the mongoDB database.
+
+    Args:
+        conf_path (string): Path to the conf file, by default ../config/connect.conf
+    """
+
     # To change paths, check connect.conf
     config = configparser.ConfigParser()
     config.read(conf_path)
