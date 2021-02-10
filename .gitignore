@@ -129,3 +129,7 @@ dmypy.json
 .pyre/
 
 .vscode/
+
+resources/model.result
+
+resources/vectorizer.result

@@ -11,6 +11,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.svm import SVC
+from joblib import dump, load
 
 from my_parser import distant, local
 
@@ -23,8 +24,8 @@ def main(sample_count=0):
     # > REDUCE size of dataset for faster tests
     # REMOVE BEFORE PRODUCTION
     if sample_count >= 1:
-        df_labels = df_labels.iloc[:sample_count]
-        df_candidates = df_candidates.iloc[:sample_count]
+        df_labels = df_labels.iloc[5:sample_count]
+        df_candidates = df_candidates.iloc[5:sample_count]
 
     print("\n\n>> Running process with {} samples :".format(
         df_candidates.shape[0]))
@@ -58,6 +59,7 @@ def main(sample_count=0):
     # > VECTORISE text : transform description into vectors to train the model
     vectorizer = CountVectorizer()
     term_matrix = vectorizer.fit_transform(df_candidates['bagOfWords'])
+    print("DEBUG : ", type(df_candidates['bagOfWords']))
     print(">> Vectorization done :")
     print("\tfeatures count : {}".format(len(vectorizer.get_feature_names())))
 
@@ -93,8 +95,11 @@ def main(sample_count=0):
         for i in range(df_categories.shape[0]):
             print("\t{:3d}\t{} \t: {}".format(
                 i, df_categories.iloc[i][0], model.n_support_[i]))
-            
-    
+
+    # > SAVE model to disk to avoid recalculating everytime
+    dump(model, 'resources/model.result')
+    dump(vectorizer, 'resources/vectorizer.result')
+    print(">> saved model to disk")
 
 
 def initialization():
@@ -141,6 +146,31 @@ def process_description(content_, stemmer=None, remove_words=[]):
         return " ".join(words_stem)
     else:
         return " ".join(words)
+
+
+def predict_category_from_description(description):
+    time_start = time()
+    print("\n>> trying to predict job corresponding to :\n {} \n".format(description))
+    model = load('resources/model.result')
+    
+    description_bagofwords = process_description(
+        description,
+        SnowballStemmer("english"),
+        set(stopwords.words("english"))
+    )
+    print(">> bag of words :\n", description_bagofwords)
+    
+    vectorizer = load('resources/vectorizer.result')
+    description_vectorized = vectorizer.transform([description_bagofwords])
+    
+    tf_transformer = TfidfTransformer(sublinear_tf=True).fit(description_vectorized)
+    description_frequency = tf_transformer.transform(description_vectorized)
+    
+    index_predicted = model.predict(description_frequency)
+    _, df_categories = initialization()
+    print("Prediction acquired in {:.2f}s".format(time()-time_start))
+    return df_categories.iloc[index_predicted]
+
 
 
 def find_most_common_words(number=None, display=False):
@@ -191,4 +221,20 @@ def find_most_common_words(number=None, display=False):
 
 if __name__ == '__main__':
     #find_most_common_words(25, True)
-    main(20000)
+    #main(20000)
+    prediction  = predict_category_from_description(
+        "She is also a Ronald D. Asmus Policy Entrepreneur Fellow with the German Marshall Fund and is a Visiting Fellow at the Centre for International Studies (CIS) at the University of Oxford. This commentary first appeared at Sada, an online journal published by the Carnegie Endowment for International Peace."
+        )
+    print("\n>> Result : ",prediction.iloc[0][0])
+    prediction  = predict_category_from_description(
+        "He is a member of the AICPA and WICPA. Brent graduated from the University of Wisconsin, La Crosse, with a degree in accountancy. He has lived in southern Wisconsin his entire life, and currently resides in Pardeeville with his wife Sara and their three children. Brent and Sara have a great appreciation of music, art, and theater."
+        )
+    print("\n>> Result : ",prediction.iloc[0][0])
+    prediction  = predict_category_from_description(
+        "Dr. Aster has held teaching and research positions at Ben Gurion University, Haifa University, Hebrew University, Bar Ilan University and the University of Pennsylvania. He has also taught Jewish studies at high schools in the United Stated and Israel."
+        )
+    print("\n>> Result : ",prediction.iloc[0][0])
+    prediction  = predict_category_from_description(
+        "He runs a boutique design studio attending clients in the United States, Europe and Asia. His work explores the convergence of human arts and science to give shape to an ever evolving design practice. With a particular commitment towards design education, Arturo is permanently engaged with the international design and development communities and often travels the world to exchange ideas about design with other designers and developers. Prior to his current venture, Arturo worked for Microsoft in Redmond for 7 years driving design evangelism"
+        )
+    print("\n>> Result : ",prediction.iloc[0][0])
