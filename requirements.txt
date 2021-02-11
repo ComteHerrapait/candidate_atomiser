@@ -1,2 +1,8 @@
 pandas
-pickle
+sklearn
+nltk
+cryptography
+pymongo
+configparser
+paramiko
+scp
